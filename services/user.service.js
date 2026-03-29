@@ -9,12 +9,15 @@ import Education from "../models/education.model.js";
 import Experience from "../models/experience.model.js";
 
 export const userRegistrationService = async (req) => {
+  if (!req.body) {
+    throw new AppError("Body is empty", 400);
+  }
   const { name, email, password } = req.body;
 
   const requiredFields = ["name", "email", "password"];
 
   for (let field of requiredFields) {
-    if (!req.body[field]?.toString().trim()) {
+    if (!req.body[field] || !req.body[field].toString().trim()) {
       throw new AppError(`${field} is required`, 400);
     }
   }
@@ -59,6 +62,9 @@ export const userRegistrationService = async (req) => {
 };
 
 export const userLoginService = async (req, res) => {
+  if (!req.body) {
+    throw new AppError("Body is empty", 400);
+  }
   const { email, password } = req.body;
 
   if (!email || !email.trim()) {
@@ -110,10 +116,10 @@ export const meService = async (req) => {
     throw new AppError("User not found", 404);
   }
 
-  const education = await Education.findOne({ user: userId })
+  const education = await Education.find({ user: userId })
     .select("-user -createdAt -updatedAt")
     .lean();
-  const experience = await Experience.findOne({ user: userId })
+  const experience = await Experience.find({ user: userId })
     .select("-user -createdAt -updatedAt")
     .lean();
 
@@ -125,5 +131,124 @@ export const meService = async (req) => {
       education,
       experience,
     },
+  };
+};
+
+export const addEducationService = async (req) => {
+  if (!req.body) {
+    throw new AppError("Body is empty", 400);
+  }
+  const userId = req.user.id;
+  let {
+    school,
+    degree,
+    startDate,
+    endDate,
+    grade,
+    activitiesNsocieties,
+    description,
+    isCurrent,
+    skills,
+  } = req.body;
+
+  isCurrent = isCurrent ?? false;
+
+  if (!school || !school.toString().trim()) {
+    throw new AppError("School is required", 400);
+  }
+
+  if (!startDate) {
+    throw new AppError("Start date is required", 400);
+  }
+
+  const isObject = (value) =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+
+  if (!isObject(startDate)) {
+    throw new AppError("Start Date must be an object", 400);
+  }
+
+  const startMonth = Number(startDate.month);
+  const startYear = Number(startDate.year);
+
+  if (
+    !startDate.month ||
+    !startDate.year ||
+    Number.isNaN(startMonth) ||
+    Number.isNaN(startYear)
+  ) {
+    throw new AppError("Invalid start date", 400);
+  }
+
+  if (startMonth < 1 || startMonth > 12) {
+    throw new AppError("Start month must be between 1 and 12", 400);
+  }
+
+  let endMonth, endYear;
+
+  if (isCurrent) {
+    endDate = null;
+  } else {
+    if (!endDate) {
+      throw new AppError("End date is required if not currently studying", 400);
+    }
+
+    if (!isObject(endDate)) {
+      throw new AppError("End date must be an object", 400);
+    }
+
+    endMonth = Number(endDate.month);
+    endYear = Number(endDate.year);
+
+    if (
+      !endDate.month ||
+      !endDate.year ||
+      Number.isNaN(endMonth) ||
+      Number.isNaN(endYear)
+    ) {
+      throw new AppError("Invalid end date", 400);
+    }
+
+    if (endMonth < 1 || endMonth > 12) {
+      throw new AppError("End month must be between 1 and 12", 400);
+    }
+    if (
+      startYear > endYear ||
+      (startYear === endYear && startMonth > endMonth)
+    ) {
+      throw new AppError("Start date cannot be after end date", 400);
+    }
+  }
+
+  if (activitiesNsocieties && !Array.isArray(activitiesNsocieties)) {
+    throw new AppError("activitiesNsocieties need to be an array", 400);
+  }
+
+  if (skills && !Array.isArray(skills)) {
+    throw new AppError("skills need to be an array", 400);
+  }
+
+  const newEducation = await Education.create({
+    user: userId,
+    school,
+    degree,
+    startDate,
+    endDate: isCurrent
+      ? null
+      : {
+          month: endMonth,
+          year: endYear,
+        },
+    grade,
+    activitiesNsocieties,
+    description,
+    isCurrent,
+    skills,
+  });
+
+  return {
+    status: 201,
+    message: "education added successfully",
+    data: newEducation,
   };
 };

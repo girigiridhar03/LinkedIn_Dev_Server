@@ -1,4 +1,5 @@
 import {
+  addEducationService,
   meService,
   userLoginService,
   userRegistrationService,
@@ -18,5 +19,10 @@ export const userLogin = asyncHandler(async (req, res) => {
 
 export const me = asyncHandler(async (req, res) => {
   const { status, message, data } = await meService(req);
+  response(res, status, message, data);
+});
+
+export const addEducation = asyncHandler(async (req, res) => {
+  const { status, message, data } = await addEducationService(req);
   response(res, status, message, data);
 });

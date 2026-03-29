@@ -4,6 +4,8 @@ const monthNyear = {
   month: {
     type: Number,
     required: true,
+    min: 1,
+    max: 12,
   },
   year: {
     type: Number,
@@ -26,7 +28,22 @@ const educationSchema = new mongoose.Schema(
       type: String,
     },
     startDate: monthNyear,
-    endDate: monthNyear,
+    endDate: {
+      month: {
+        type: Number,
+        required: function () {
+          return !this.isCurrent;
+        },
+        min: 1,
+        max: 12,
+      },
+      year: {
+        type: Number,
+        required: function () {
+          return !this.isCurrent;
+        },
+      },
+    },
     grade: {
       type: String,
     },
