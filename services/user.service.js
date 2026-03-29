@@ -117,9 +117,11 @@ export const meService = async (req) => {
   }
 
   const education = await Education.find({ user: userId })
+    .sort({ isCurrent: -1, createdAt: -1 })
     .select("-user -createdAt -updatedAt")
     .lean();
   const experience = await Experience.find({ user: userId })
+    .sort({ isCurrent: -1, createdAt: -1 })
     .select("-user -createdAt -updatedAt")
     .lean();
 
@@ -187,6 +189,12 @@ export const addEducationService = async (req) => {
   let endMonth, endYear;
 
   if (isCurrent) {
+    if (endDate) {
+      throw new AppError(
+        "End date should not be provided if currently working",
+        400,
+      );
+    }
     endDate = null;
   } else {
     if (!endDate) {
@@ -232,7 +240,10 @@ export const addEducationService = async (req) => {
     user: userId,
     school,
     degree,
-    startDate,
+    startDate: {
+      month: startMonth,
+      year: startYear,
+    },
     endDate: isCurrent
       ? null
       : {
@@ -250,5 +261,149 @@ export const addEducationService = async (req) => {
     status: 201,
     message: "education added successfully",
     data: newEducation,
+  };
+};
+
+export const addExperienceService = async (req) => {
+  if (!req.body) {
+    throw new AppError("Body is empty", 400);
+  }
+
+  const userId = req.user.id;
+
+  let {
+    title,
+    employmentType,
+    companyOrOrganization,
+    isCurrent,
+    startDate,
+    endDate,
+    location,
+    locationType,
+    description,
+    profileHeading,
+    skills,
+  } = req.body;
+
+  isCurrent = isCurrent ?? false;
+
+  if (!title || !title.toString().trim()) {
+    throw new AppError("title is required", 400);
+  }
+  if (!employmentType || !employmentType.toString().trim()) {
+    throw new AppError("Employment type is required", 400);
+  }
+  if (!companyOrOrganization || !companyOrOrganization.toString().trim()) {
+    throw new AppError("Company/Organization is required", 400);
+  }
+
+  if (!startDate) {
+    throw new AppError("StartDate is required", 400);
+  }
+
+  const isObject = (value) => {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  };
+
+  if (!isObject(startDate)) {
+    throw new AppError("Start Data must be an object", 400);
+  }
+
+  const startMonth = Number(startDate.month);
+  const startYear = Number(startDate.year);
+
+  if (
+    !startDate.month ||
+    !startDate.year ||
+    Number.isNaN(startMonth) ||
+    Number.isNaN(startYear)
+  ) {
+    throw new AppError("Start Date is invalid", 400);
+  }
+
+  if (startMonth < 1 || startMonth > 12) {
+    throw new AppError("startmonth must be between 1 to 12", 400);
+  }
+
+  let endMonth, endYear;
+
+  if (isCurrent) {
+    if (endDate) {
+      throw new AppError(
+        "End date should not be provided if currently working",
+        400,
+      );
+    }
+    endDate = null;
+  } else {
+    if (!endDate) {
+      throw new AppError("EndDate is required", 400);
+    }
+    if (!isObject(endDate)) {
+      throw new AppError("End Date must be an object", 400);
+    }
+
+    endMonth = Number(endDate.month);
+    endYear = Number(endDate.year);
+
+    if (
+      !endDate.month ||
+      !endDate.year ||
+      Number.isNaN(endMonth) ||
+      Number.isNaN(endYear)
+    ) {
+      throw new AppError("End Date is invalid", 400);
+    }
+
+    if (endMonth < 1 || endMonth > 12) {
+      throw new AppError("EndMonth must be between 1 to 12", 400);
+    }
+
+    if (
+      startYear > endYear ||
+      (startYear === endYear && startMonth > endMonth)
+    ) {
+      throw new AppError("Start date cannot be after end date", 400);
+    }
+  }
+
+  if (!location || !location.toString().trim()) {
+    throw new AppError("Location is required", 400);
+  }
+  if (!locationType || !locationType.toString().trim()) {
+    throw new AppError("Location is required", 400);
+  }
+
+  if (skills && !Array.isArray(skills)) {
+    throw new AppError("skills need to be an array", 400);
+  }
+
+  const newExperience = await Experience.create({
+    user: userId,
+    title,
+    employmentType,
+    companyOrOrganization,
+    isCurrent,
+    startDate: {
+      month: startMonth,
+      year: startYear,
+    },
+    endDate: isCurrent
+      ? null
+      : {
+          month: endMonth,
+          year: endYear,
+        },
+    location,
+    locationType,
+    description,
+    profileHeading,
+    skills,
+  });
+
+  return {
+    status: 201,
+    message: "Experience added successfully",
+    data: newExperience,
   };
 };

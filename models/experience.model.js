@@ -3,6 +3,8 @@ const monthNyear = {
   month: {
     type: Number,
     required: true,
+    min: 1,
+    max: 12,
   },
   year: {
     type: Number,
@@ -28,8 +30,27 @@ const experienceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isCurrent: {
+      type: Boolean,
+      default: false,
+    },
     startDate: monthNyear,
-    endDate: monthNyear,
+    endDate: {
+      month: {
+        type: Number,
+        required: function () {
+          return !this.isCurrent;
+        },
+        min: 1,
+        max: 12,
+      },
+      year: {
+        type: Number,
+        required: function () {
+          return !this.isCurrent;
+        },
+      },
+    },
     location: {
       type: String,
       required: true,
@@ -44,10 +65,6 @@ const experienceSchema = new mongoose.Schema(
     profileHeading: {
       type: String,
     },
-    isCurrent: {
-      type: Boolean,
-      default: false,
-    },
     skills: [String],
   },
   {
@@ -58,5 +75,4 @@ const experienceSchema = new mongoose.Schema(
 
 const Experience = mongoose.model("Experience", experienceSchema);
 
-
-export default Experience
+export default Experience;

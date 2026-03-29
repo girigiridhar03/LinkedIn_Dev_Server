@@ -27,6 +27,10 @@ const educationSchema = new mongoose.Schema(
     degree: {
       type: String,
     },
+    isCurrent: {
+      type: Boolean,
+      default: false,
+    },
     startDate: monthNyear,
     endDate: {
       month: {
@@ -50,10 +54,6 @@ const educationSchema = new mongoose.Schema(
     activitiesNsocieties: [String],
     description: {
       type: String,
-    },
-    isCurrent: {
-      type: Boolean,
-      default: false,
     },
     skills: [String],
   },

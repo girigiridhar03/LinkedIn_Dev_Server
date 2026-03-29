@@ -2,6 +2,7 @@ import express from "express";
 import { upload } from "../config/multer.config.js";
 import {
   addEducation,
+  addExperience,
   me,
   userLogin,
   userRegistration,
@@ -16,7 +17,8 @@ userRouter.post(
   userRegistration,
 );
 userRouter.post("/auth/login", userLogin);
-userRouter.get("/user/me", authMiddleware, me);
 userRouter.post("/user/education", authMiddleware, addEducation);
+userRouter.post("/user/experience", authMiddleware, addExperience);
+userRouter.get("/user/me", authMiddleware, me);
 
 export default userRouter;

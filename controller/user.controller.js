@@ -1,5 +1,6 @@
 import {
   addEducationService,
+  addExperienceService,
   meService,
   userLoginService,
   userRegistrationService,
@@ -24,5 +25,10 @@ export const me = asyncHandler(async (req, res) => {
 
 export const addEducation = asyncHandler(async (req, res) => {
   const { status, message, data } = await addEducationService(req);
+  response(res, status, message, data);
+});
+
+export const addExperience = asyncHandler(async (req, res) => {
+  const { status, message, data } = await addExperienceService(req);
   response(res, status, message, data);
 });
