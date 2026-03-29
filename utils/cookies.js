@@ -1,8 +1,9 @@
 export const setAuthCookies = (res, token) => {
+  const isProduction = process.env.NODE_ENV === "production";
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000,
     path: "/api",
   };

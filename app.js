@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 
-
 const noCache = (req, res, next) => {
   res.set({
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -11,12 +10,15 @@ const noCache = (req, res, next) => {
   });
   next();
 };
-const allowedOrigin = ["http://localhost:5173"];
+const allowedOrigin = [
+  "http://localhost:5173",
+  "https://linked-in-dev-client.vercel.app",
+];
 const app = express();
 
 app.use(noCache);
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(
   cors({
     origin: function (origin, cb) {
