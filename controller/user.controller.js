@@ -1,4 +1,5 @@
 import {
+  meService,
   userLoginService,
   userRegistrationService,
 } from "../services/user.service.js";
@@ -12,5 +13,10 @@ export const userRegistration = asyncHandler(async (req, res) => {
 
 export const userLogin = asyncHandler(async (req, res) => {
   const { status, message, data } = await userLoginService(req, res);
+  response(res, status, message, data);
+});
+
+export const me = asyncHandler(async (req, res) => {
+  const { status, message, data } = await meService(req);
   response(res, status, message, data);
 });

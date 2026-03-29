@@ -16,6 +16,7 @@ const app = express();
 
 app.use(noCache);
 app.use(express.json());
+app.use(cookieParser())
 app.use(
   cors({
     origin: function (origin, cb) {
@@ -39,5 +40,6 @@ import userRouter from "./routes/user.routes.js";
 app.use("/api", userRouter);
 
 import { errorHandler } from "./utils/handlers.js";
+import cookieParser from "cookie-parser";
 app.use(errorHandler);
 export default app;

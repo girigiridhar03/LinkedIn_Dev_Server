@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 import { setAuthCookies } from "../utils/cookies.js";
 import jwt from "jsonwebtoken";
 import { config } from "../config/env.config.js";
+import Education from "../models/education.model.js";
+import Experience from "../models/experience.model.js";
 
 export const userRegistrationService = async (req) => {
   const { name, email, password } = req.body;
@@ -93,6 +95,35 @@ export const userLoginService = async (req, res) => {
       name: userExist.name,
       email: userExist.email,
       _id: userExist._id,
+    },
+  };
+};
+
+export const meService = async (req) => {
+  const userId = req.user.id;
+
+  const user = await User.findById(userId)
+    .select("-password -updatedAt")
+    .lean();
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const education = await Education.findOne({ user: userId })
+    .select("-user -createdAt -updatedAt")
+    .lean();
+  const experience = await Experience.findOne({ user: userId })
+    .select("-user -createdAt -updatedAt")
+    .lean();
+
+  return {
+    status: 200,
+    message: "User Fetched Successfully",
+    data: {
+      user,
+      education,
+      experience,
     },
   };
 };
