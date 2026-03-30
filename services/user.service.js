@@ -1,4 +1,7 @@
-import { uploadBufferToCloudinary } from "../config/cloudinary.config.js";
+import {
+  deleteFileFromCloudinary,
+  uploadBufferToCloudinary,
+} from "../config/cloudinary.config.js";
 import User from "../models/user.model.js";
 import { AppError } from "../utils/AppError.js";
 import bcrypt from "bcrypt";
@@ -489,5 +492,107 @@ export const getCompanyOrOrganizationService = async (req) => {
     status: 200,
     message: "Company/Organization names fetched successfully",
     data: compaines,
+  };
+};
+
+export const editUserDetailsService = async (req) => {
+  const userId = req.user.id;
+  const data = req.body;
+  const updatedData = await User.findById(userId).select(
+    "-password -createdAt -updatedAt",
+  );
+
+  if (!data) {
+    throw new AppError("Body is empty", 400);
+  }
+
+  if (data?.name?.trim() && data?.nam !== updatedData.name) {
+    updatedData.name = data.name;
+    const baseSlug = slugify(data.name, {
+      lower: true,
+      strict: true,
+    });
+
+    const uniqueSlug = `${baseSlug}-${Date.now()}`;
+
+    updatedData.slug = uniqueSlug;
+  }
+
+  if (
+    data?.phoneNumber?.trim() &&
+    data?.phoneNumber !== updatedData.phoneNumber
+  ) {
+    updatedData.phoneNumber = data.phoneNumber;
+  }
+
+  if (data?.address && data?.address !== updatedData.address) {
+    updatedData.address = data.address;
+  }
+
+  if (data?.dob && typeof data.dob === "object") {
+    if (!updatedData.dob) updatedData.dob = {};
+
+    if (data.dob?.month) updatedData.dob.month = data.dob.month;
+    if (data.dob?.year) updatedData.dob.year = data.dob.year;
+  }
+
+  if (data?.bio?.trim() && data?.bio !== updatedData.bio) {
+    updatedData.bio = data.bio;
+  }
+
+  if (req.files?.profileImage) {
+    if (updatedData.profileImage.publicId) {
+      await deleteFileFromCloudinary(updatedData.profileImage.publicId);
+    }
+
+    let profileImageData = await uploadBufferToCloudinary(
+      req.files.profileImage[0],
+      "profile",
+    );
+    if (profileImageData) {
+      updatedData.profileImage = {
+        url: profileImageData.secure_url,
+        publicId: profileImageData.public_id,
+      };
+    }
+  }
+
+  if (req.files?.coverImage) {
+    if (updatedData.coverImage.publicId) {
+      await deleteFileFromCloudinary(updatedData.coverImage.publicId);
+    }
+
+    let coverImageData = await uploadBufferToCloudinary(
+      req.files.coverImage[0],
+      "cover",
+    );
+    if (coverImageData) {
+      updatedData.coverImage = {
+        url: coverImageData.secure_url,
+        publicId: coverImageData.public_id,
+      };
+    }
+  }
+
+  if (data?.skills && Array.isArray(data?.skills)) {
+    updatedData.skills = data?.skills;
+  }
+
+  if (data?.website && Array.isArray(data?.website)) {
+    const isValid = data.website.every((item) => item.url && item.type);
+
+    if (!isValid) {
+      throw new AppError("Invalid website format", 400);
+    }
+
+    updatedData.website = data.website;
+  }
+
+  await updatedData.save();
+
+  return {
+    status: 200,
+    message: "Updated successfully",
+    data: updatedData,
   };
 };

@@ -37,10 +37,6 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
     },
-    phoneType: {
-      type: String,
-      enum: ["Mobile", "Work", "Home"],
-    },
     address: {
       type: String,
     },

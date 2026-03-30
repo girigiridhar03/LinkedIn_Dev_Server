@@ -1,6 +1,7 @@
 import {
   addEducationService,
   addExperienceService,
+  editUserDetailsService,
   getCompanyOrOrganizationService,
   getEducationSchoolService,
   meService,
@@ -42,5 +43,10 @@ export const getEducationSchool = asyncHandler(async (req, res) => {
 
 export const getCompanyOrOrganization = asyncHandler(async (req, res) => {
   const { status, message, data } = await getCompanyOrOrganizationService(req);
+  response(res, status, message, data);
+});
+
+export const editUserDetails = asyncHandler(async (req, res) => {
+  const { status, message, data } = await editUserDetailsService(req);
   response(res, status, message, data);
 });

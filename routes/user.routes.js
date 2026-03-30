@@ -3,6 +3,7 @@ import { upload } from "../config/multer.config.js";
 import {
   addEducation,
   addExperience,
+  editUserDetails,
   getCompanyOrOrganization,
   getEducationSchool,
   me,
@@ -24,5 +25,14 @@ userRouter.post("/user/experience", authMiddleware, addExperience);
 userRouter.get("/user/me", authMiddleware, me);
 userRouter.get("/user/school-names", authMiddleware, getEducationSchool);
 userRouter.get("/user/company-names", authMiddleware, getCompanyOrOrganization);
+userRouter.patch(
+  "/user/me",
+  authMiddleware,
+  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+  ]),
+  editUserDetails,
+);
 
 export default userRouter;

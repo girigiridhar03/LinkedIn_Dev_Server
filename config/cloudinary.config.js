@@ -7,8 +7,26 @@ cloudinary.config({
   api_secret: config.api_secret,
 });
 
-export const uploadBufferToCloudinary = async (file) => {
+export const uploadBufferToCloudinary = async (file, type = "profile") => {
   if (!file?.buffer) return null;
+
+  let transformation = [];
+
+  if (type === "profile") {
+    transformation = [
+      { width: 400, height: 400, crop: "fill", gravity: "face" },
+      { quality: "auto:good" },
+      { fetch_format: "auto" },
+    ];
+  }
+
+  if (type === "cover") {
+    transformation = [
+      { width: 1200, height: 400, crop: "fill" },
+      { quality: "auto:good" },
+      { fetch_format: "auto" },
+    ];
+  }
 
   try {
     const response = await new Promise((resolve, reject) => {
@@ -16,11 +34,7 @@ export const uploadBufferToCloudinary = async (file) => {
         {
           resource_type: "auto",
           folder: "LinkedIn-Dev",
-          transformation: [
-            { width: 400, height: 400, crop: "fill", gravity: "face" },
-            { quality: "auto:good" },
-            { fetch_format: "auto" },
-          ],
+          transformation,
         },
         (error, result) => {
           if (error) return reject(error);
