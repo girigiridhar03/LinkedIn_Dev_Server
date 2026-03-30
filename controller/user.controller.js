@@ -4,6 +4,7 @@ import {
   editUserDetailsService,
   getCompanyOrOrganizationService,
   getEducationSchoolService,
+  logoutService,
   meService,
   singleUserService,
   userLoginService,
@@ -55,4 +56,9 @@ export const getCompanyOrOrganization = asyncHandler(async (req, res) => {
 export const editUserDetails = asyncHandler(async (req, res) => {
   const { status, message, data } = await editUserDetailsService(req);
   response(res, status, message, data);
+});
+
+export const logout = asyncHandler(async (req, res) => {
+  const { status, message } = await logoutService(res);
+  response(res, status, message);
 });

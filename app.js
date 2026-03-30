@@ -35,11 +35,13 @@ app.use(
 );
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.status(200).json({ status: "ok" });
 });
 
 import userRouter from "./routes/user.routes.js";
+import connectionRouter from "./routes/connection.routes.js";
 app.use("/api", userRouter);
+app.use("/api/connection", connectionRouter);
 
 import { errorHandler } from "./utils/handlers.js";
 import cookieParser from "cookie-parser";

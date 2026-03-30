@@ -6,6 +6,7 @@ import {
   editUserDetails,
   getCompanyOrOrganization,
   getEducationSchool,
+  logout,
   me,
   singleUser,
   userLogin,
@@ -35,6 +36,7 @@ userRouter.patch(
   ]),
   editUserDetails,
 );
+userRouter.post("/auth/logout", authMiddleware, logout);
 
 // Dynamic Routes
 userRouter.get("/user/:slug", authMiddleware, singleUser);

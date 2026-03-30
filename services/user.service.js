@@ -12,6 +12,7 @@ import Education from "../models/education.model.js";
 import Experience from "../models/experience.model.js";
 import slugify from "slugify";
 import mongoose from "mongoose";
+import Connection from "../models/connection.model.js";
 
 const userDetails = async (userId) => {
   const isValidObjectId = mongoose.Types.ObjectId.isValid(userId);
@@ -72,11 +73,24 @@ const userDetails = async (userId) => {
     }),
   );
 
+  const connectionCount = await Connection.countDocuments({
+    $or: [
+      {
+        senderId: user._id,
+      },
+      {
+        receiverId: userId._id,
+      },
+    ],
+    status: "accepted",
+  });
+
   return {
     status: 200,
     message: "User Fetched Successfully",
     data: {
       user,
+      connectionCount,
       educations: educationresult,
       experiences: experienceresult,
     },
@@ -611,5 +625,21 @@ export const editUserDetailsService = async (req) => {
     status: 200,
     message: "Updated successfully",
     data: updatedData,
+  };
+};
+
+export const logoutService = async (res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/api",
+  });
+
+  return {
+    status: 200,
+    message: "User logged out successfully",
   };
 };

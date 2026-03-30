@@ -20,7 +20,7 @@ const connectionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    versionKey: true,
+    versionKey: false,
   },
 );
 connectionSchema.index({ senderId: 1, receiverId: 1 }, { unique: true });
