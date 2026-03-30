@@ -7,6 +7,7 @@ import {
   getCompanyOrOrganization,
   getEducationSchool,
   me,
+  singleUser,
   userLogin,
   userRegistration,
 } from "../controller/user.controller.js";
@@ -34,5 +35,8 @@ userRouter.patch(
   ]),
   editUserDetails,
 );
+
+// Dynamic Routes
+userRouter.get("/user/:slug", authMiddleware, singleUser);
 
 export default userRouter;

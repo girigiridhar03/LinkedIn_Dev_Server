@@ -11,6 +11,77 @@ import { config } from "../config/env.config.js";
 import Education from "../models/education.model.js";
 import Experience from "../models/experience.model.js";
 import slugify from "slugify";
+import mongoose from "mongoose";
+
+const userDetails = async (userId) => {
+  const isValidObjectId = mongoose.Types.ObjectId.isValid(userId);
+
+  const query = isValidObjectId ? { _id: userId } : { slug: userId };
+
+  const user = await User.findOne(query).select("-password -updatedAt").lean();
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const education = await Education.find({ user: user._id })
+    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
+    .select("-user -createdAt -updatedAt")
+    .lean();
+
+  const educationgrouped = education.reduce((acc, curr) => {
+    const school = curr.school;
+
+    if (!acc[school]) {
+      acc[school] = [];
+    }
+
+    acc[school].push(curr);
+
+    return acc;
+  }, {});
+
+  const educationresult = Object.entries(educationgrouped).map(
+    ([school, education]) => ({
+      school,
+      education,
+    }),
+  );
+
+  const experience = await Experience.find({ user: user._id })
+    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
+    .select("-user -createdAt -updatedAt")
+    .lean();
+
+  const experiencegrouped = experience.reduce((acc, curr) => {
+    const company = curr.companyOrOrganization;
+
+    if (!acc[company]) {
+      acc[company] = [];
+    }
+
+    acc[company].push(curr);
+
+    return acc;
+  }, {});
+
+  const experienceresult = Object.entries(experiencegrouped).map(
+    ([company, experience]) => ({
+      company,
+      experience,
+    }),
+  );
+
+  return {
+    status: 200,
+    message: "User Fetched Successfully",
+    data: {
+      user,
+      educations: educationresult,
+      experiences: experienceresult,
+    },
+  };
+};
 
 export const userRegistrationService = async (req, res) => {
   if (!req.body) {
@@ -128,71 +199,17 @@ export const userLoginService = async (req, res) => {
 export const meService = async (req) => {
   const userId = req.user.id;
 
-  const user = await User.findById(userId)
-    .select("-password -updatedAt")
-    .lean();
+  return await userDetails(userId);
+};
 
-  if (!user) {
-    throw new AppError("User not found", 404);
+export const singleUserService = async (req) => {
+  const slug = req.params.slug;
+
+  if (!slug) {
+    throw new AppError("Slug is required", 400);
   }
 
-  const education = await Education.find({ user: userId })
-    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
-    .select("-user -createdAt -updatedAt")
-    .lean();
-
-  const educationgrouped = education.reduce((acc, curr) => {
-    const school = curr.school;
-
-    if (!acc[school]) {
-      acc[school] = [];
-    }
-
-    acc[school].push(curr);
-
-    return acc;
-  }, {});
-
-  const educationresult = Object.entries(educationgrouped).map(
-    ([school, education]) => ({
-      school,
-      education,
-    }),
-  );
-
-  const experience = await Experience.find({ user: userId })
-    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
-    .select("-user -createdAt -updatedAt")
-    .lean();
-
-  const experiencegrouped = experience.reduce((acc, curr) => {
-    const company = curr.companyOrOrganization;
-
-    if (!acc[company]) {
-      acc[company] = [];
-    }
-
-    acc[company].push(curr);
-
-    return acc;
-  }, {});
-
-  const experienceresult = Object.entries(experiencegrouped).map(
-    ([company, experience]) => ({
-      company,
-      experience,
-    }),
-  );
-
-  return {
-    status: 200,
-    message: "User Fetched Successfully",
-    data: {
-      user,
-      educations: educationresult,
-      experiences: experienceresult,
-    },
-  };
+  return await userDetails(slug);
 };
 
 export const addEducationService = async (req) => {

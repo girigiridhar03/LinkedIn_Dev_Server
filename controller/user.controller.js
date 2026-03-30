@@ -5,6 +5,7 @@ import {
   getCompanyOrOrganizationService,
   getEducationSchoolService,
   meService,
+  singleUserService,
   userLoginService,
   userRegistrationService,
 } from "../services/user.service.js";
@@ -23,6 +24,11 @@ export const userLogin = asyncHandler(async (req, res) => {
 
 export const me = asyncHandler(async (req, res) => {
   const { status, message, data } = await meService(req);
+  response(res, status, message, data);
+});
+
+export const singleUser = asyncHandler(async (req, res) => {
+  const { status, message, data } = await singleUserService(req);
   response(res, status, message, data);
 });
 
