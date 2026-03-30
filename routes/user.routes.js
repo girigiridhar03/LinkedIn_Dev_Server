@@ -3,6 +3,8 @@ import { upload } from "../config/multer.config.js";
 import {
   addEducation,
   addExperience,
+  getCompanyOrOrganization,
+  getEducationSchool,
   me,
   userLogin,
   userRegistration,
@@ -20,5 +22,7 @@ userRouter.post("/auth/login", userLogin);
 userRouter.post("/user/education", authMiddleware, addEducation);
 userRouter.post("/user/experience", authMiddleware, addExperience);
 userRouter.get("/user/me", authMiddleware, me);
+userRouter.get("/user/school-names", authMiddleware, getEducationSchool);
+userRouter.get("/user/company-names", authMiddleware, getCompanyOrOrganization);
 
 export default userRouter;

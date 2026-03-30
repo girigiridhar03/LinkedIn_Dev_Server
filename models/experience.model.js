@@ -29,6 +29,7 @@ const experienceSchema = new mongoose.Schema(
     companyOrOrganization: {
       type: String,
       required: true,
+      index: true,
     },
     isCurrent: {
       type: Boolean,

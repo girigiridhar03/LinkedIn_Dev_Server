@@ -7,8 +7,9 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/env.config.js";
 import Education from "../models/education.model.js";
 import Experience from "../models/experience.model.js";
+import slugify from "slugify";
 
-export const userRegistrationService = async (req) => {
+export const userRegistrationService = async (req, res) => {
   if (!req.body) {
     throw new AppError("Body is empty", 400);
   }
@@ -36,8 +37,16 @@ export const userRegistrationService = async (req) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
+  const baseSlug = slugify(name, {
+    lower: true,
+    strict: true,
+  });
+
+  const uniqueSlug = `${baseSlug}-${Date.now()}`;
+
   const newUser = await User.create({
     name,
+    slug: uniqueSlug,
     email,
     password: hashedPassword,
     ...(uploadedFile
@@ -49,6 +58,14 @@ export const userRegistrationService = async (req) => {
         }
       : {}),
   });
+
+  const token = jwt.sign(
+    { id: newUser._id, name: newUser.name, slug: newUser.slug },
+    config.jwt_secret,
+    { expiresIn: "1d" },
+  );
+
+  setAuthCookies(res, token);
 
   return {
     status: 201,
@@ -87,7 +104,7 @@ export const userLoginService = async (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: userExist._id, name: userExist.name },
+    { id: userExist._id, name: userExist.name, slug: userExist.slug },
     config.jwt_secret,
     { expiresIn: "1d" },
   );
@@ -117,21 +134,60 @@ export const meService = async (req) => {
   }
 
   const education = await Education.find({ user: userId })
-    .sort({ isCurrent: -1, createdAt: -1 })
+    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
     .select("-user -createdAt -updatedAt")
     .lean();
+
+  const educationgrouped = education.reduce((acc, curr) => {
+    const school = curr.school;
+
+    if (!acc[school]) {
+      acc[school] = [];
+    }
+
+    acc[school].push(curr);
+
+    return acc;
+  }, {});
+
+  const educationresult = Object.entries(educationgrouped).map(
+    ([school, education]) => ({
+      school,
+      education,
+    }),
+  );
+
   const experience = await Experience.find({ user: userId })
-    .sort({ isCurrent: -1, createdAt: -1 })
+    .sort({ isCurrent: -1, createdAt: -1, year: -1, month: 1 })
     .select("-user -createdAt -updatedAt")
     .lean();
+
+  const experiencegrouped = experience.reduce((acc, curr) => {
+    const company = curr.companyOrOrganization;
+
+    if (!acc[company]) {
+      acc[company] = [];
+    }
+
+    acc[company].push(curr);
+
+    return acc;
+  }, {});
+
+  const experienceresult = Object.entries(experiencegrouped).map(
+    ([company, experience]) => ({
+      company,
+      experience,
+    }),
+  );
 
   return {
     status: 200,
     message: "User Fetched Successfully",
     data: {
       user,
-      education,
-      experience,
+      educations: educationresult,
+      experiences: experienceresult,
     },
   };
 };
@@ -405,5 +461,33 @@ export const addExperienceService = async (req) => {
     status: 201,
     message: "Experience added successfully",
     data: newExperience,
+  };
+};
+
+export const getEducationSchoolService = async (req) => {
+  const filter = req?.query?.search
+    ? { school: { $regex: req?.query?.search, $options: "i" } }
+    : {};
+
+  const schools = await Education.distinct("school", filter);
+
+  return {
+    status: 200,
+    message: "school names fetched successfully",
+    data: schools,
+  };
+};
+
+export const getCompanyOrOrganizationService = async (req) => {
+  const filter = req?.query?.search
+    ? { school: { $regex: req?.query?.search, $options: "i" } }
+    : {};
+
+  const compaines = await Experience.distinct("companyOrOrganization", filter);
+
+  return {
+    status: 200,
+    message: "Company/Organization names fetched successfully",
+    data: compaines,
   };
 };

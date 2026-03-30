@@ -19,6 +19,13 @@ const userSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
+    slug: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+      unique: true,
+    },
     email: {
       type: String,
       required: true,

@@ -16,6 +16,11 @@ export const uploadBufferToCloudinary = async (file) => {
         {
           resource_type: "auto",
           folder: "LinkedIn-Dev",
+          transformation: [
+            { width: 400, height: 400, crop: "fill", gravity: "face" },
+            { quality: "auto:good" },
+            { fetch_format: "auto" },
+          ],
         },
         (error, result) => {
           if (error) return reject(error);

@@ -23,6 +23,7 @@ const educationSchema = new mongoose.Schema(
     school: {
       type: String,
       required: true,
+      index : true,
     },
     degree: {
       type: String,
