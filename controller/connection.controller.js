@@ -1,5 +1,7 @@
 import {
+  actionConnectionService,
   getConnectionsService,
+  removeConnectionService,
   sendConnectionService,
 } from "../services/connection.service.js";
 import { asyncHandler } from "../utils/handlers.js";
@@ -13,4 +15,14 @@ export const sendConnection = asyncHandler(async (req, res) => {
 export const getConnections = asyncHandler(async (req, res) => {
   const { status, message, data } = await getConnectionsService(req);
   response(res, status, message, data);
+});
+
+export const actionConnection = asyncHandler(async (req, res) => {
+  const { status, message, data } = await actionConnectionService(req);
+  response(res, status, message, data);
+});
+
+export const removeConnection = asyncHandler(async (req, res) => {
+  const { status, message } = await removeConnectionService(req);
+  response(res, status, message);
 });

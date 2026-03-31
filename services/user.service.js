@@ -54,6 +54,13 @@ const userDetails = async (userId) => {
     .select("-user -createdAt -updatedAt")
     .lean();
 
+  let profileHeading = "";
+
+  const currentExp = experience.find((exp) => exp.isCurrent);
+  if (currentExp) {
+    profileHeading = currentExp.profileHeading;
+  }
+
   const experiencegrouped = experience.reduce((acc, curr) => {
     const company = curr.companyOrOrganization;
 
@@ -79,7 +86,7 @@ const userDetails = async (userId) => {
         senderId: user._id,
       },
       {
-        receiverId: userId._id,
+        receiverId: user._id,
       },
     ],
     status: "accepted",
@@ -89,8 +96,11 @@ const userDetails = async (userId) => {
     status: 200,
     message: "User Fetched Successfully",
     data: {
-      user,
-      connectionCount,
+      user: {
+        ...user,
+        profileHeading,
+        connectionCount,
+      },
       educations: educationresult,
       experiences: experienceresult,
     },
@@ -514,7 +524,7 @@ export const getEducationSchoolService = async (req) => {
 
 export const getCompanyOrOrganizationService = async (req) => {
   const filter = req?.query?.search
-    ? { school: { $regex: req?.query?.search, $options: "i" } }
+    ? { companyOrOrganization: { $regex: req?.query?.search, $options: "i" } }
     : {};
 
   const compaines = await Experience.distinct("companyOrOrganization", filter);
