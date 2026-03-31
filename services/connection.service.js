@@ -3,11 +3,103 @@ import { AppError } from "../utils/AppError.js";
 import Connection from "../models/connection.model.js";
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
+import Experience from "../models/experience.model.js";
 
 const getConnectionPairKey = (firstUserId, secondUserId) => {
   return [firstUserId.toString(), secondUserId.toString()].sort().join(":");
 };
 
+const finalUserDetailsFun = async (userIds) => {
+  if (!userIds?.length) return {};
+
+  const objectUserIds = userIds.map((id) => new mongoose.Types.ObjectId(id));
+
+  const experience = await Experience.aggregate([
+    {
+      $match: { user: { $in: objectUserIds } },
+    },
+    {
+      $sort: { isCurrent: -1, createdAt: -1 },
+    },
+    {
+      $group: {
+        _id: "$user",
+        doc: { $first: "$$ROOT" },
+      },
+    },
+    {
+      $replaceRoot: { newRoot: "$doc" },
+    },
+    {
+      $project: {
+        location: 1,
+        profileHeading: 1,
+        user: 1,
+        skills: 1,
+      },
+    },
+  ]);
+
+  const connectionCounts = await Connection.aggregate([
+    {
+      $match: {
+        status: "accepted",
+        senderId: { $in: objectUserIds },
+      },
+    },
+    {
+      $group: {
+        _id: "$senderId",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $unionWith: {
+        coll: "connections",
+        pipeline: [
+          {
+            $match: {
+              status: "accepted",
+              receiverId: { $in: objectUserIds },
+            },
+          },
+          {
+            $group: {
+              _id: "$receiverId",
+              count: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        count: { $sum: "$count" },
+      },
+    },
+  ]);
+
+  const connectionMap = {};
+  connectionCounts.forEach((c) => {
+    connectionMap[c._id.toString()] = c.count;
+  });
+
+  const userDetails = {};
+
+  experience.forEach((e) => {
+    const key = e.user.toString();
+
+    userDetails[key] = {
+      location: e.location,
+      profileHeading: e.profileHeading,
+      skills: e.skills,
+      connectionCount: connectionMap[key] || 0,
+    };
+  });
+
+  return userDetails;
+};
 export const sendConnectionService = async (req) => {
   const userId = req.user.id;
   const receiverId = req.params.receiverId;
@@ -92,14 +184,12 @@ export const getConnectionsService = async (req) => {
   const page = Number(req.query.page) || 1;
   const skip = (page - 1) * limit;
 
+  const currentUser = await User.findById(userId).select("skills");
+  if (!currentUser) {
+    throw new AppError("User not found", 404);
+  }
+
   if (!status) {
-    const currentUser = await User.findById(userId).select("skills");
-    const isExistingUser = await User.exists({ _id: userId });
-
-    if (!isExistingUser) {
-      throw new AppError("User not found", 404);
-    }
-
     const connections = await Connection.find({
       $or: [{ senderId: userId }, { receiverId: userId }],
       status: { $in: ["pending", "accepted"] },
@@ -114,44 +204,21 @@ export const getConnectionsService = async (req) => {
 
     excludeIds.add(userId);
 
+    const excludedObjectIds = Array.from(excludeIds).map(
+      (id) => new mongoose.Types.ObjectId(id),
+    );
+
     const suggestedUsers = await User.aggregate([
       {
         $match: {
-          _id: {
-            $nin: Array.from(excludeIds).map(
-              (id) => new mongoose.Types.ObjectId(id),
-            ),
-          },
+          _id: { $nin: excludedObjectIds },
         },
       },
       {
         $addFields: {
           matchCount: {
             $size: {
-              $filter: {
-                input: "$skills",
-                as: "skill",
-                cond: {
-                  $gt: [
-                    {
-                      $size: {
-                        $filter: {
-                          input: currentUser.skills || [],
-                          as: "userSkill",
-                          cond: {
-                            $regexMatch: {
-                              input: "$$skill",
-                              regex: "$$userSkill",
-                              options: "i",
-                            },
-                          },
-                        },
-                      },
-                    },
-                    0,
-                  ],
-                },
-              },
+              $setIntersection: ["$skills", currentUser.skills || []],
             },
           },
         },
@@ -167,18 +234,29 @@ export const getConnectionsService = async (req) => {
           matchCount: 1,
         },
       },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
+      { $skip: skip },
+      { $limit: limit },
     ]);
+
+    const userIds = suggestedUsers.map((user) => user._id);
+
+    const userDetails = await finalUserDetailsFun(userIds);
+
+    const finalUserDetails = suggestedUsers.map((user) => {
+      const key = user._id.toString();
+      const details = userDetails[key] || {};
+
+      return {
+        ...user,
+        ...details,
+        connectionCount: details.connectionCount || 0,
+      };
+    });
 
     return {
       status: 200,
       message: "Suggested users fetched successfully",
-      data: suggestedUsers,
+      data: finalUserDetails,
     };
   }
 
@@ -201,6 +279,7 @@ export const getConnectionsService = async (req) => {
 
   const result = connections.map((conn) => {
     const isSender = conn.senderId._id.toString() === userId;
+
     return isSender
       ? {
           ...conn.receiverId,
@@ -214,10 +293,25 @@ export const getConnectionsService = async (req) => {
         };
   });
 
+  const userIds = result.map((user) => user._id);
+
+  const userDetails = await finalUserDetailsFun(userIds);
+
+  const finalObj = result.map((user) => {
+    const key = user._id.toString();
+    const details = userDetails[key] || {};
+
+    return {
+      ...user,
+      ...details,
+      connectionCount: details.connectionCount || 0,
+    };
+  });
+
   return {
     status: 200,
-    message: "connections fetched successfull",
-    data: result,
+    message: "Connections fetched successfully",
+    data: finalObj,
   };
 };
 

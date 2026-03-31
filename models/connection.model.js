@@ -30,15 +30,17 @@ const connectionSchema = new mongoose.Schema(
   },
 );
 
-connectionSchema.pre("validate", function (next) {
+connectionSchema.pre("validate", function () {
   if (!this.senderId || !this.receiverId) {
-    return next();
+    return;
   }
 
-  const [firstId, secondId] = [this.senderId.toString(), this.receiverId.toString()].sort();
-  this.pairKey = `${firstId}:${secondId}`;
+  const [firstId, secondId] = [
+    this.senderId.toString(),
+    this.receiverId.toString(),
+  ].sort();
 
-  next();
+  this.pairKey = `${firstId}:${secondId}`;
 });
 
 const Connection = mongoose.model("Connection", connectionSchema);
