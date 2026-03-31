@@ -4,9 +4,15 @@ import Connection from "../models/connection.model.js";
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
 
+const getConnectionPairKey = (firstUserId, secondUserId) => {
+  return [firstUserId.toString(), secondUserId.toString()].sort().join(":");
+};
+
 export const sendConnectionService = async (req) => {
   const userId = req.user.id;
   const receiverId = req.params.receiverId;
+  const pairKey = getConnectionPairKey(userId, receiverId);
+
   if (!receiverId) {
     throw new AppError("receiverId is required", 400);
   }
@@ -25,12 +31,7 @@ export const sendConnectionService = async (req) => {
     throw new AppError("Receiver not found", 404);
   }
 
-  const existingConnection = await Connection.findOne({
-    $or: [
-      { senderId: userId, receiverId },
-      { senderId: receiverId, receiverId: userId },
-    ],
-  });
+  const existingConnection = await Connection.findOne({ pairKey });
 
   if (existingConnection) {
     if (existingConnection.status === "accepted") {
@@ -46,11 +47,28 @@ export const sendConnectionService = async (req) => {
     }
   }
 
-  const newConnection = await Connection.create({
-    senderId: userId,
-    receiverId,
-    status: "pending",
-  });
+  let newConnection;
+
+  try {
+    newConnection = await Connection.create({
+      senderId: userId,
+      receiverId,
+      status: "pending",
+      pairKey,
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      const concurrentConnection = await Connection.findOne({ pairKey });
+
+      if (concurrentConnection?.status === "accepted") {
+        throw new AppError("Already connected", 400);
+      }
+
+      throw new AppError("Connection request already sent", 400);
+    }
+
+    throw error;
+  }
 
   await Notification.create({
     user: receiverId,

@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import { config } from "./env.config.js";
+import { AppError } from "../utils/AppError.js";
 
 cloudinary.config({
   cloud_name: config.cloud_name,
@@ -48,7 +49,7 @@ export const uploadBufferToCloudinary = async (file, type = "profile") => {
     return response;
   } catch (error) {
     console.log("upload buffer to cloudinary failed", error);
-    return null;
+    throw new AppError("File upload failed", 500);
   }
 };
 

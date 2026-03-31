@@ -543,11 +543,15 @@ export const editUserDetailsService = async (req) => {
     "-password -createdAt -updatedAt",
   );
 
+  if (!updatedData) {
+    throw new AppError("User not found", 404);
+  }
+
   if (!data) {
     throw new AppError("Body is empty", 400);
   }
 
-  if (data?.name?.trim() && data?.nam !== updatedData.name) {
+  if (data?.name?.trim() && data?.name !== updatedData.name) {
     updatedData.name = data.name;
     const baseSlug = slugify(data.name, {
       lower: true,
@@ -582,15 +586,15 @@ export const editUserDetailsService = async (req) => {
   }
 
   if (req.files?.profileImage) {
-    if (updatedData.profileImage.publicId) {
-      await deleteFileFromCloudinary(updatedData.profileImage.publicId);
-    }
-
     let profileImageData = await uploadBufferToCloudinary(
       req.files.profileImage[0],
       "profile",
     );
+
     if (profileImageData) {
+      if (updatedData.profileImage.publicId) {
+        await deleteFileFromCloudinary(updatedData.profileImage.publicId);
+      }
       updatedData.profileImage = {
         url: profileImageData.secure_url,
         publicId: profileImageData.public_id,
@@ -599,15 +603,15 @@ export const editUserDetailsService = async (req) => {
   }
 
   if (req.files?.coverImage) {
-    if (updatedData.coverImage.publicId) {
-      await deleteFileFromCloudinary(updatedData.coverImage.publicId);
-    }
-
     let coverImageData = await uploadBufferToCloudinary(
       req.files.coverImage[0],
       "cover",
     );
+
     if (coverImageData) {
+      if (updatedData.coverImage.publicId) {
+        await deleteFileFromCloudinary(updatedData.coverImage.publicId);
+      }
       updatedData.coverImage = {
         url: coverImageData.secure_url,
         publicId: coverImageData.public_id,

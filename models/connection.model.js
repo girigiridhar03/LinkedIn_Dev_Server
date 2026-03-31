@@ -17,13 +17,30 @@ const connectionSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "rejected"],
       default: "pending",
     },
+    pairKey: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
     versionKey: false,
   },
 );
-connectionSchema.index({ senderId: 1, receiverId: 1 }, { unique: true });
+
+connectionSchema.pre("validate", function (next) {
+  if (!this.senderId || !this.receiverId) {
+    return next();
+  }
+
+  const [firstId, secondId] = [this.senderId.toString(), this.receiverId.toString()].sort();
+  this.pairKey = `${firstId}:${secondId}`;
+
+  next();
+});
+
 const Connection = mongoose.model("Connection", connectionSchema);
 
 export default Connection;

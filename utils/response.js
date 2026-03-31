@@ -7,10 +7,10 @@ const response = (res, statusCode, message, data = null) => {
     success: statusCode < 400,
     statusCode,
     message,
-    ...(data ? { data } : {}),
+    ...(data !== null ? { data } : {}),
   };
 
   return res.status(statusCode).json(resObj);
 };
 
-export default response
+export default response;
